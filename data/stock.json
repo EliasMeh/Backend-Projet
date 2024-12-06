@@ -1,0 +1,18 @@
+{
+  "stock": {
+    "products": [
+      {
+        "id": 4,
+        "description": "Produit4"
+      },
+      {
+        "id": 6,
+        "description": "Produit6"
+      },
+      {
+        "id": 8,
+        "description": "Produit8"
+      }
+    ]
+  }
+}

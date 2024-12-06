@@ -1,0 +1,52 @@
+[
+  {
+    "id":1,
+    "title": "To Kill a Mockingbird",
+    "summary": "A novel about the serious issues of rape and racial inequality told through the eyes of a young girl in the Deep South."
+  },
+  {
+    "id": 2,
+    "title": "1984",
+    "summary": "A dystopian novel set in a totalitarian society ruled by Big Brother."
+  },
+  {
+    "id": 3,
+    "title": "Pride and Prejudice",
+    "summary": "A romantic novel that also critiques the British landed gentry at the end of the 18th century."
+  },
+  {
+    "id": 4,
+    "title": "The Great Gatsby",
+    "summary": "A novel about the decline of the American Dream in the 1920s."
+  },
+  {
+    "id": 5,
+    "title": "Moby Dick",
+    "summary": "A narrative of the adventures of the wandering sailor Ishmael and his voyage on the whaleship Pequod."
+  },
+  {
+    "id": 6,
+    "title": "War and Peace",
+    "summary": "A historical novel that chronicles the French invasion of Russia and its impact on Tsarist society."
+  },
+  {
+    "id": 7,
+    "title": "The Catcher in the Rye",
+    "summary": "A novel about the events in the life of a young man named Holden Caulfield."
+  },
+  {
+    "id": 8,
+    "title": "The Hobbit",
+    "summary": "A fantasy novel that follows the quest of home-loving Bilbo Baggins to win a share of the treasure guarded by Smaug the dragon."
+  },
+  {
+    "id": 9,
+    "title": "Fahrenheit 451",
+    "summary": "A dystopian novel that presents a future American society where books are outlawed and 'firemen' burn any that are found."
+  },
+  {
+    "id": 10,
+    "title": "Jane Eyre",
+    "summary": "A novel that follows the emotions and experiences of its eponymous heroine, including her growth to adulthood and her love for Mr. Rochester."
+  }
+]

@@ -64,7 +64,6 @@ io.on('connection', (socket) => {
         lobbies[lobby].targetNumber = Math.floor(Math.random() * 999999) + 1;
         updateLobbyState(lobby);
       } else {
-        // Provide feedback based on the guess
         if (difference >= 750000) message += 'Nan la tu forces de fou ...🦍';
         else if (difference >= 500000) message += 'Tu tes perdu je crois. 🏔️';
         else if (difference >= 250000) message += 'Tes pas mal. 🧊';
@@ -77,7 +76,6 @@ io.on('connection', (socket) => {
         else message += '🔥LES🔥 🔥FLAMME🔥S ME🔥 BRULENT. 🔥🔥';
       }
 
-      // Broadcast the guess and result to the team members only
       io.to(lobbies[lobby].teams[team]).emit('teamMessage', {
         message: `${username} guessed ${guess}. Result: ${message}`,
         team,
@@ -137,7 +135,6 @@ io.on('connection', (socket) => {
     
     updateLobbyState(lobby);
 
-    // Clean up lobby if empty
     if (Object.keys(lobbies[lobby]?.users).length === 0 && lobby !== 'general') {
       delete lobbies[lobby];
       io.emit('updateLobbies', Object.keys(lobbies));

@@ -16,7 +16,11 @@ const io = socketIo(server, {
 const PORT = process.env.PORT || 3001;
 
 let lobbies = {
-  'general': { users: {}, targetNumber: Math.floor(Math.random() * 10) + 1 }
+  'general': { 
+    users: {},
+    teams: {},
+    targetNumber: Math.floor(Math.random() * 10) + 1 
+  }
 };
 
 io.on('connection', (socket) => {
@@ -24,32 +28,34 @@ io.on('connection', (socket) => {
   let currentLobby = null;
 
   socket.on('join', ({ username, lobby = 'general' }) => {
-    // If user was in a previous lobby, remove them from it
     if (currentLobby) {
-      socket.leave(currentLobby);
-      delete lobbies[currentLobby].users[socket.id];
-      io.to(currentLobby).emit('updateUsers', Object.values(lobbies[currentLobby].users));
+      leaveCurrentLobbyAndTeam(socket);
     }
 
     if (!lobbies[lobby]) {
-      lobbies[lobby] = { users: {}, targetNumber: Math.floor(Math.random() * 10) + 1 };
+      lobbies[lobby] = { users: {}, teams: {}, targetNumber: Math.floor(Math.random() * 10) + 1 };
     }
     
     socket.join(lobby);
     currentLobby = lobby;
-    lobbies[lobby].users[socket.id] = { username, score: 0 };
-    io.to(lobby).emit('updateUsers', Object.values(lobbies[lobby].users));
+    const newTeamName = `${username}'s team`;
+    lobbies[lobby].users[socket.id] = { username, score: 0, team: newTeamName };
+    lobbies[lobby].teams[newTeamName] = [socket.id];
+
+    updateLobbyState(lobby);
     io.emit('updateLobbies', Object.keys(lobbies));
   });
 
   socket.on('guess', ({ guess, lobby }) => {
     if (lobbies[lobby] && lobbies[lobby].users[socket.id]) {
-      const user = lobbies[lobby].users[socket.id];
       if (parseInt(guess) === lobbies[lobby].targetNumber) {
-        user.score++;
+        const team = lobbies[lobby].users[socket.id].team;
+        lobbies[lobby].teams[team].forEach(userId => {
+          lobbies[lobby].users[userId].score++;
+        });
         socket.emit('guessResult', 'Correct Guess!');
         lobbies[lobby].targetNumber = Math.floor(Math.random() * 10) + 1;
-        io.to(lobby).emit('updateUsers', Object.values(lobbies[lobby].users));
+        updateLobbyState(lobby);
       } else {
         socket.emit('guessResult', 'Incorrect Guess');
       }
@@ -58,22 +64,59 @@ io.on('connection', (socket) => {
 
   socket.on('createLobby', (lobbyName) => {
     if (!lobbies[lobbyName]) {
-      lobbies[lobbyName] = { users: {}, targetNumber: Math.floor(Math.random() * 10) + 1 };
+      lobbies[lobbyName] = { users: {}, teams: {}, targetNumber: Math.floor(Math.random() * 10) + 1 };
       io.emit('updateLobbies', Object.keys(lobbies));
+    }
+  });
+
+  socket.on('joinTeam', ({ teamName, lobby }) => {
+    if (lobbies[lobby] && lobbies[lobby].users[socket.id]) {
+      const oldTeam = lobbies[lobby].users[socket.id].team;
+      lobbies[lobby].teams[oldTeam] = lobbies[lobby].teams[oldTeam].filter(id => id !== socket.id);
+      if (lobbies[lobby].teams[oldTeam].length === 0) {
+        delete lobbies[lobby].teams[oldTeam];
+      }
+
+      if (!lobbies[lobby].teams[teamName]) {
+        lobbies[lobby].teams[teamName] = [];
+      }
+      lobbies[lobby].teams[teamName].push(socket.id);
+      lobbies[lobby].users[socket.id].team = teamName;
+
+      updateLobbyState(lobby);
     }
   });
 
   socket.on('disconnect', () => {
     console.log('Client disconnected');
     if (currentLobby) {
-      delete lobbies[currentLobby].users[socket.id];
-      io.to(currentLobby).emit('updateUsers', Object.values(lobbies[currentLobby].users));
-      if (Object.keys(lobbies[currentLobby].users).length === 0 && currentLobby !== 'general') {
-        delete lobbies[currentLobby];
-      }
-      io.emit('updateLobbies', Object.keys(lobbies));
+      leaveCurrentLobbyAndTeam(socket);
     }
   });
+
+  function leaveCurrentLobbyAndTeam(socket) {
+    const lobby = currentLobby;
+    const team = lobbies[lobby].users[socket.id].team;
+    lobbies[lobby].teams[team] = lobbies[lobby].teams[team].filter(id => id !== socket.id);
+    if (lobbies[lobby].teams[team].length === 0) {
+      delete lobbies[lobby].teams[team];
+    }
+    delete lobbies[lobby].users[socket.id];
+    socket.leave(lobby);
+    updateLobbyState(lobby);
+
+    if (Object.keys(lobbies[lobby].users).length === 0 && lobby !== 'general') {
+      delete lobbies[lobby];
+      io.emit('updateLobbies', Object.keys(lobbies));
+    }
+  }
+
+  function updateLobbyState(lobby) {
+    io.to(lobby).emit('updateLobbyState', {
+      users: Object.values(lobbies[lobby].users),
+      teams: lobbies[lobby].teams
+    });
+  }
 });
 
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

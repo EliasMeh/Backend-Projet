@@ -22,7 +22,7 @@ let lobbies = {
     targetNumber: Math.floor(Math.random() * 999999) + 1 
   }
 };
-
+//gestion de la connexion des utilisateurs
 io.on('connection', (socket) => {
   console.log('New client connected');
   let currentLobby = null;
@@ -45,7 +45,7 @@ io.on('connection', (socket) => {
     updateLobbyState(lobby);
     io.emit('updateLobbies', Object.keys(lobbies));
   });
-
+  //gestion de la création du targetNumber et des choix utilisateurs
   socket.on('guess', ({ guess, lobby }) => {
     if (lobbies[lobby] && lobbies[lobby].users[socket.id]) {
       const targetNumber = lobbies[lobby].targetNumber;
@@ -75,7 +75,7 @@ io.on('connection', (socket) => {
         else if (difference >= 10) message += 'C\'EST TROP CHAUUDDDD. 🔥🔥🔥';
         else message += '🔥LES🔥 🔥FLAMME🔥S ME🔥 BRULENT. 🔥🔥';
       }
-
+      //gestion du chat d'équipe
       io.to(lobbies[lobby].teams[team]).emit('teamMessage', {
         message: `${username} guessed ${guess}. Result: ${message}`,
         team,
@@ -110,14 +110,14 @@ io.on('connection', (socket) => {
       updateLobbyState(lobby);
     }
   });
-
+  //gestion de la déconnexion
   socket.on('disconnect', () => {
     console.log('Client disconnected');
     if (currentLobby) {
       leaveCurrentLobbyAndTeam(socket);
     }
   });
-
+  //permet de garder à jour les lobbies et teams
   function leaveCurrentLobbyAndTeam(socket) {
     const lobby = currentLobby;
     const team = lobbies[lobby]?.users[socket.id]?.team;
@@ -140,7 +140,7 @@ io.on('connection', (socket) => {
       io.emit('updateLobbies', Object.keys(lobbies));
     }
   }
-
+  //mise à jour de l'état du lobby
   function updateLobbyState(lobby) {
     io.to(lobby).emit('updateLobbyState', {
       users: Object.values(lobbies[lobby]?.users),

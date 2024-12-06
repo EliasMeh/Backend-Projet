@@ -1,54 +1,50 @@
-const express = require("express");
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+const cors = require('cors');
+
 const app = express();
-const http = require("http");
-const { Server } = require("socket.io");
-const cors = require("cors");
-
-const sent_guess = 'send_guess';
-let nombreale = Math.floor(Math.random() * 10) + 1;
-let connectedUsers = {}; 
-
-
 app.use(cors());
-
 const server = http.createServer(app);
-
-const io = new Server(server, {
+const io = socketIo(server, {
   cors: {
     origin: "*",
-    methods: ["GET", "POST"],
-  },
+    methods: ["GET", "POST"]
+  }
 });
 
-io.on("connection", (socket) => {
-  connectedUsers[socket.id] = 0;
+const PORT = process.env.PORT || 3001;
 
-  socket.emit('update_leaderboard', connectedUsers);
+let users = {};
+let targetNumber = Math.floor(Math.random() * 10) + 1;
 
-  io.emit('update_leaderboard', connectedUsers);
+io.on('connection', (socket) => {
+  console.log('New client connected');
 
-  socket.on('request_leaderboard', () => {
-    socket.emit('update_leaderboard', connectedUsers);
+  socket.on('join', (username) => {
+    users[socket.id] = { username, score: 0 };
+    io.emit('updateUsers', Object.values(users));
   });
 
-  socket.on(sent_guess, (data) => {
-    if (data == nombreale) {
-      connectedUsers[socket.id] += 1; 
-      io.emit('correct_guess', { message: "Correct guess!", guess: data, points: connectedUsers[socket.id] });
-      nombreale = Math.floor(Math.random() * 10) + 1; 
-    } else {
-      io.emit('incorrect_guess', { message: "Incorrect guess.", guess: data });
+  socket.on('guess', (guess) => {
+    const user = users[socket.id];
+    if (user) {
+      if (parseInt(guess) === targetNumber) {
+        user.score++;
+        socket.emit('guessResult', 'Correct Guess!');
+        targetNumber = Math.floor(Math.random() * 10) + 1;
+        io.emit('updateUsers', Object.values(users));
+      } else {
+        socket.emit('guessResult', 'Incorrect Guess');
+      }
     }
-    io.emit('update_leaderboard', connectedUsers);
   });
 
-  socket.on("disconnect", () => {
-    delete connectedUsers[socket.id]; 
-
-    io.emit('update_leaderboard', connectedUsers);
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
+    delete users[socket.id];
+    io.emit('updateUsers', Object.values(users));
   });
 });
 
-server.listen(3001, () => {
-  console.log("Server running on port 3001");
-});
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

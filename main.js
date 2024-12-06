@@ -51,43 +51,40 @@ io.on('connection', (socket) => {
       const targetNumber = lobbies[lobby].targetNumber;
       const guessedNumber = parseInt(guess);
       const difference = Math.abs(guessedNumber - targetNumber);
+      const team = lobbies[lobby].users[socket.id].team;
+      const username = lobbies[lobby].users[socket.id].username;
 
+      let message = `Incorrect Guess.`;
+      
       if (guessedNumber === targetNumber) {
-        const team = lobbies[lobby].users[socket.id].team;
         lobbies[lobby].teams[team].forEach(userId => {
           lobbies[lobby].users[userId].score++;
         });
-        socket.emit('guessResult', 'Bien joué! 🎉');
+        message = 'Bien joué! 🎉';
         lobbies[lobby].targetNumber = Math.floor(Math.random() * 999999) + 1;
         updateLobbyState(lobby);
       } else {
-        let message = `Incorrect Guess.`;
-        //si vous voulez afficher la distance vous pouvez console.log(difference)
-        if (difference >= 750000) {
-          message += 'Nan la tu forces de fou ...🦍';
-        } else if (difference >= 500000) {
-          message += 'Tu tes perdu je crois. 🏔️';
-        } else if (difference >= 250000) {
-          message += 'Tes pas mal. 🧊';
-        } else if (difference >= 100000) {
-          message += 'Tu t\'approches. 🥶';
-        } else if (difference >= 50000) {
-          message += 'La distance se fait courte. ❄️';
-        } else if (difference >= 1000) {
-          message += 'Hmm tes proche. 🤨';
-        } else if (difference >= 500) {
-          message += 'Il commence à faire chaud ici. 😡';
-        } else if (difference >= 100) {
-          message += 'AHHHHH il commance à faire chaud. C\'est le sauna ici? 🌋';
-        } else if (difference >= 10) {
-          message += 'C\'EST TROP CHAUUDDDD. 🔥🔥🔥';
-        } else {
-          message += '🔥LES🔥 🔥FLAMME🔥S ME🔥 BRULENT. 🔥🔥';
-        }
-
-
-        socket.emit('guessResult', message);
+        // Provide feedback based on the guess
+        if (difference >= 750000) message += 'Nan la tu forces de fou ...🦍';
+        else if (difference >= 500000) message += 'Tu tes perdu je crois. 🏔️';
+        else if (difference >= 250000) message += 'Tes pas mal. 🧊';
+        else if (difference >= 100000) message += 'Tu t\'approches. 🥶';
+        else if (difference >= 50000) message += 'La distance se fait courte. ❄️';
+        else if (difference >= 1000) message += 'Hmm tes proche. 🤨';
+        else if (difference >= 500) message += 'Il commence à faire chaud ici. 😡';
+        else if (difference >= 100) message += 'AHHHHH il commance à faire chaud. C\'est le sauna ici? 🌋';
+        else if (difference >= 10) message += 'C\'EST TROP CHAUUDDDD. 🔥🔥🔥';
+        else message += '🔥LES🔥 🔥FLAMME🔥S ME🔥 BRULENT. 🔥🔥';
       }
+
+      // Broadcast the guess and result to the team members only
+      io.to(lobbies[lobby].teams[team]).emit('teamMessage', {
+        message: `${username} guessed ${guess}. Result: ${message}`,
+        team,
+        username
+      });
+
+      socket.emit('guessResult', message);
     }
   });
 
@@ -125,16 +122,23 @@ io.on('connection', (socket) => {
 
   function leaveCurrentLobbyAndTeam(socket) {
     const lobby = currentLobby;
-    const team = lobbies[lobby].users[socket.id].team;
-    lobbies[lobby].teams[team] = lobbies[lobby].teams[team].filter(id => id !== socket.id);
-    if (lobbies[lobby].teams[team].length === 0) {
-      delete lobbies[lobby].teams[team];
+    const team = lobbies[lobby]?.users[socket.id]?.team;
+    
+    if (team) {
+      lobbies[lobby].teams[team] = lobbies[lobby].teams[team].filter(id => id !== socket.id);
+      if (lobbies[lobby].teams[team].length === 0) {
+        delete lobbies[lobby].teams[team];
+      }
     }
-    delete lobbies[lobby].users[socket.id];
+
+    delete lobbies[lobby]?.users[socket.id];
+    
     socket.leave(lobby);
+    
     updateLobbyState(lobby);
 
-    if (Object.keys(lobbies[lobby].users).length === 0 && lobby !== 'general') {
+    // Clean up lobby if empty
+    if (Object.keys(lobbies[lobby]?.users).length === 0 && lobby !== 'general') {
       delete lobbies[lobby];
       io.emit('updateLobbies', Object.keys(lobbies));
     }
@@ -142,8 +146,8 @@ io.on('connection', (socket) => {
 
   function updateLobbyState(lobby) {
     io.to(lobby).emit('updateLobbyState', {
-      users: Object.values(lobbies[lobby].users),
-      teams: lobbies[lobby].teams
+      users: Object.values(lobbies[lobby]?.users),
+      teams: lobbies[lobby]?.teams
     });
   }
 });

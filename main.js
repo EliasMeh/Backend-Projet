@@ -19,7 +19,7 @@ let lobbies = {
   'general': { 
     users: {},
     teams: {},
-    targetNumber: Math.floor(Math.random() * 10) + 1 
+    targetNumber: Math.floor(Math.random() * 999999) + 1 
   }
 };
 
@@ -33,7 +33,7 @@ io.on('connection', (socket) => {
     }
 
     if (!lobbies[lobby]) {
-      lobbies[lobby] = { users: {}, teams: {}, targetNumber: Math.floor(Math.random() * 10) + 1 };
+      lobbies[lobby] = { users: {}, teams: {}, targetNumber: Math.floor(Math.random() * 999999) + 1 };
     }
     
     socket.join(lobby);
@@ -48,23 +48,52 @@ io.on('connection', (socket) => {
 
   socket.on('guess', ({ guess, lobby }) => {
     if (lobbies[lobby] && lobbies[lobby].users[socket.id]) {
-      if (parseInt(guess) === lobbies[lobby].targetNumber) {
+      const targetNumber = lobbies[lobby].targetNumber;
+      const guessedNumber = parseInt(guess);
+      const difference = Math.abs(guessedNumber - targetNumber);
+
+      if (guessedNumber === targetNumber) {
         const team = lobbies[lobby].users[socket.id].team;
         lobbies[lobby].teams[team].forEach(userId => {
           lobbies[lobby].users[userId].score++;
         });
-        socket.emit('guessResult', 'Correct Guess!');
-        lobbies[lobby].targetNumber = Math.floor(Math.random() * 10) + 1;
+        socket.emit('guessResult', 'Bien joué! 🎉');
+        lobbies[lobby].targetNumber = Math.floor(Math.random() * 999999) + 1;
         updateLobbyState(lobby);
       } else {
-        socket.emit('guessResult', 'Incorrect Guess');
+        let message = `Incorrect Guess.`;
+        //si vous voulez afficher la distance vous pouvez console.log(difference)
+        if (difference >= 750000) {
+          message += 'Nan la tu forces de fou ...🦍';
+        } else if (difference >= 500000) {
+          message += 'Tu tes perdu je crois. 🏔️';
+        } else if (difference >= 250000) {
+          message += 'Tes pas mal. 🧊';
+        } else if (difference >= 100000) {
+          message += 'Tu t\'approches. 🥶';
+        } else if (difference >= 50000) {
+          message += 'La distance se fait courte. ❄️';
+        } else if (difference >= 1000) {
+          message += 'Hmm tes proche. 🤨';
+        } else if (difference >= 500) {
+          message += 'Il commence à faire chaud ici. 😡';
+        } else if (difference >= 100) {
+          message += 'AHHHHH il commance à faire chaud. C\'est le sauna ici? 🌋';
+        } else if (difference >= 10) {
+          message += 'C\'EST TROP CHAUUDDDD. 🔥🔥🔥';
+        } else {
+          message += '🔥LES🔥 🔥FLAMME🔥S ME🔥 BRULENT. 🔥🔥';
+        }
+
+
+        socket.emit('guessResult', message);
       }
     }
   });
 
   socket.on('createLobby', (lobbyName) => {
     if (!lobbies[lobbyName]) {
-      lobbies[lobbyName] = { users: {}, teams: {}, targetNumber: Math.floor(Math.random() * 10) + 1 };
+      lobbies[lobbyName] = { users: {}, teams: {}, targetNumber: Math.floor(Math.random() * 999999) + 1 };
       io.emit('updateLobbies', Object.keys(lobbies));
     }
   });
